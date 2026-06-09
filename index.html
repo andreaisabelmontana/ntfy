@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Self-Hosted Push Notifications — Built From Scratch</title>
+<meta name="description" content="An original from-scratch build of a self-hosted push-notification service: send alerts to phone and desktop with a single HTTP request, no app backend required." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --accent:#0891b2; --accent-soft:#e3f6fb; --ink:#16201f; --muted:#5d6b69;
+    --line:#dfe5e3; --bg:#fbfcfb; --card:#ffffff;
+    --serif:'Fraunces',Georgia,serif; --sans:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:0 28px}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:var(--mono);font-size:.86em;background:var(--accent-soft);padding:.1em .4em;border-radius:4px;color:#066a82}
+  h1,h2,h3{font-family:var(--serif);font-weight:500;line-height:1.15;letter-spacing:-.01em}
+  /* Header */
+  header.hero{padding:88px 0 56px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 22px}
+  h1{font-size:clamp(2.6rem,6vw,4.1rem);margin:0 0 18px}
+  .lede{font-size:1.22rem;color:var(--muted);max-width:62ch;margin:0 0 28px}
+  .meta{display:flex;flex-wrap:wrap;gap:10px;font-size:.82rem}
+  .chip{font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;border:1px solid var(--line);border-radius:999px;padding:5px 12px;color:var(--muted);background:var(--card)}
+  /* Sections */
+  section{padding:54px 0;border-bottom:1px solid var(--line)}
+  .kicker{font-family:var(--mono);font-size:.74rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin:0 0 14px}
+  h2{font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0 0 20px}
+  h3{font-size:1.2rem;margin:0 0 6px}
+  p{margin:0 0 18px;max-width:68ch}
+  .muted{color:var(--muted)}
+  /* Stack grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:8px}
+  .tool{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .tool .t{font-family:var(--mono);font-size:.78rem;color:var(--accent);letter-spacing:.04em;margin-bottom:8px}
+  .tool h3{font-size:1.05rem;font-family:var(--sans);font-weight:600;margin-bottom:6px}
+  .tool p{font-size:.92rem;color:var(--muted);margin:0}
+  /* Pipeline / modules */
+  ol.flow{counter-reset:s;list-style:none;padding:0;margin:24px 0 0}
+  ol.flow li{position:relative;padding:18px 0 18px 56px;border-top:1px solid var(--line)}
+  ol.flow li:before{counter-increment:s;content:counter(s,decimal-leading-zero);position:absolute;left:0;top:18px;font-family:var(--mono);font-size:.8rem;color:var(--accent);border:1px solid var(--line);border-radius:8px;width:38px;height:38px;display:grid;place-items:center;background:var(--card)}
+  ol.flow li h3{font-family:var(--sans);font-size:1.02rem;font-weight:600;margin:0 0 4px}
+  ol.flow li p{margin:0;font-size:.93rem;color:var(--muted)}
+  .tag{display:inline-block;font-family:var(--mono);font-size:.68rem;padding:2px 7px;border-radius:5px;margin-left:8px;vertical-align:middle}
+  .tag.on{background:#e6f7ec;color:#1c7a43}
+  .tag.off{background:#fdecea;color:#b23b2c}
+  /* Callout */
+  .callout{background:var(--accent-soft);border:1px solid #bfe9f2;border-radius:14px;padding:24px 26px;margin-top:8px}
+  .callout p:last-child{margin:0}
+  /* Reflection list */
+  ul.learn{list-style:none;padding:0;margin:8px 0 0}
+  ul.learn li{padding:14px 0 14px 30px;border-top:1px solid var(--line);position:relative;color:var(--muted);max-width:68ch}
+  ul.learn li:before{content:"→";position:absolute;left:0;color:var(--accent);font-family:var(--mono)}
+  ul.learn li b{color:var(--ink);font-weight:600}
+  /* Footer */
+  footer{padding:48px 0 80px}
+  .credit{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px}
+  .credit .k{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  footer .fine{font-size:.8rem;color:var(--muted);margin-top:22px;text-align:center}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">From-Scratch Build · Self-Hosted Alerts</p>
+    <h1>Self-Hosted Push Notifications</h1>
+    <p class="lede">A private notification service that pushes alerts to my phone and desktop from a single HTTP request — no app to write, no cloud account, no third-party backend. Built from scratch around the ntfy server, running in Docker.</p>
+    <div class="meta">
+      <span class="chip">ntfy</span><span class="chip">HTTP pub/sub</span><span class="chip">Docker</span>
+      <span class="chip">curl</span><span class="chip">Webhooks</span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">What it is</p>
+    <h2>A notification you can curl</h2>
+    <p>This is a <b>self-hosted push-notification service</b>. The whole premise is delightfully simple: to send yourself an alert, you make an HTTP request. To receive alerts, you subscribe to a named <b>topic</b> — in a browser tab, in a mobile app, or with a script. A build finishes, a sensor trips a threshold, a backup completes — any program that can send an HTTP request can now ping you.</p>
+    <p>I built this to learn how push notifications work without depending on Apple, Google or any SaaS dashboard. A topic is just a name. Publishing is a <code>POST</code>. Subscribing is a long-lived <code>GET</code>. That radical simplicity is the entire point — and it's what makes the service trivial to glue into anything.</p>
+    <div class="callout">
+      <p><b>The core idea I wanted to learn:</b> notifications don't need an SDK. If the server speaks plain HTTP, then a one-line <code>curl</code> from a cron job, a CI pipeline or a microcontroller is enough to reach my pocket.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">The stack</p>
+    <h2>Tools under the hood</h2>
+    <p class="muted">A single container does the job. Here is what each piece contributes.</p>
+    <div class="grid">
+      <div class="tool"><div class="t">server</div><h3>ntfy</h3><p>The notification server itself. It accepts published messages over HTTP and streams them to every subscriber of the matching topic.</p></div>
+      <div class="tool"><div class="t">protocol</div><h3>HTTP pub/sub</h3><p>Publish with a <code>POST</code>, subscribe with a streaming <code>GET</code>. No proprietary protocol — just requests any tool already understands.</p></div>
+      <div class="tool"><div class="t">packaging</div><h3>Docker Compose</h3><p>Runs the server as one container, mapping an internal port to the host and mounting cache and config directories for persistence.</p></div>
+      <div class="tool"><div class="t">health</div><h3>Healthcheck</h3><p>A compose healthcheck polls the server's <code>/v1/health</code> endpoint so the container reports unhealthy the moment the service stops responding.</p></div>
+      <div class="tool"><div class="t">clients</div><h3>Browser + mobile app</h3><p>Subscribe by opening the topic URL in a tab, or install the companion mobile app and subscribe to the same topic name for real push alerts.</p></div>
+      <div class="tool"><div class="t">integrations</div><h3>curl / scripts</h3><p>Official Python and JavaScript libraries exist, but anything that can make an HTTP call — shell, cron, CI, a sensor — can publish.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">How it works</p>
+    <h2>Topic, subscribe, publish</h2>
+    <p>The mental model has exactly three moves, and once they click the whole service makes sense:</p>
+    <ol class="flow">
+      <li><h3>Create a topic</h3><p>A topic is just a name like <code>alerts</code> or <code>backups</code>. Picking the name <i>is</i> creating it — the server makes the route on first use.</p></li>
+      <li><h3>Subscribe</h3><p>Open the topic's URL in a browser tab to stream updates live, or subscribe to the same name in the mobile app to get real push notifications on your phone.</p></li>
+      <li><h3>Publish</h3><p>Send a message body to the topic URL with a <code>POST</code>. For a quick test that's one line: <code>curl -d "Hi" http://host:1337/alerts</code>.</p></li>
+      <li><h3>Receive instantly</h3><p>Every subscriber to that topic gets the message in real time. The same message reaches the browser tab and the phone at once.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">How it runs</p>
+    <h2>One container, persistent state</h2>
+    <p>Deployment is a single service in Docker Compose, designed to survive restarts:</p>
+    <ul class="learn">
+      <li><b>Serve mode:</b> the container runs the server's <code>serve</code> command, exposing its HTTP API on a host port.</li>
+      <li><b>Persistence:</b> the cache and config directories are mounted as volumes, so subscriptions and settings outlive the container.</li>
+      <li><b>Self-healing:</b> a healthcheck hits <code>/v1/health</code> on an interval; <code>restart: unless-stopped</code> brings the service back automatically if it ever falls over.</li>
+      <li><b>Timezone-aware:</b> a <code>TZ</code> environment variable keeps notification timestamps aligned with local time.</li>
+    </ul>
+    <p class="muted" style="margin-top:18px">In my rebuild I focused on the round trip: bring up the container, subscribe to a topic in one tab, <code>curl</code> a message from a terminal, and watch it appear instantly.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">Reflection</p>
+    <h2>What rebuilding it taught me</h2>
+    <ul class="learn">
+      <li><b>HTTP is enough.</b> A notification system doesn't need a special protocol — a POST to publish and a streaming GET to subscribe covers it.</li>
+      <li><b>Topics are zero-setup.</b> No registration step; naming a topic creates it. That removes all the friction from wiring up a new alert.</li>
+      <li><b>Self-hosting buys independence.</b> Owning the server means no rate limits, no third-party outage, and alerts that never leave my network unless I want them to.</li>
+      <li><b>Healthchecks make containers honest.</b> A liveness probe plus a restart policy turns a single image into a service that quietly takes care of itself.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="credit">
+      <div class="k">About this build</div>
+      <p style="margin:0">An original, from-scratch build by <b>Andrea</b> — written to learn how self-hosted push notifications work, from an HTTP publish to a phone in your pocket. Plain HTML/CSS, deployed on GitHub Pages.</p>
+    </div>
+    <p class="fine">Built from scratch by Andrea · one of an ongoing series of learning builds.</p>
+  </div>
+</footer>
+</body>
+</html>
